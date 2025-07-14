@@ -6,7 +6,6 @@ from copy import copy
 from pathlib import Path
 import shutil
 import os
-import sys
 import json
 from InquirerPy import inquirer
 from InquirerPy.separator import Separator
