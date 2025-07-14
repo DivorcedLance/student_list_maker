@@ -211,7 +211,7 @@ def nombre_corto_curso(codigo_curso, df):
     nivel = NIVEL_ABBR.get(fila["Nivel"], "NA")
     ciclo = str(fila["Ciclo"]).zfill(2) if pd.notna(fila["Ciclo"]) else "00"
     modalidad = MODALIDAD_ABBR.get(str(fila["MODALIDAD"]).lower(), "X")
-    dias_abbr = "".join(sorted([DIA_COD.get(dia, "?") for dia in fila["HORARIO DETALLADO"].keys()]))
+    dias_abbr = "".join([DIA_COD.get(dia, "?") for dia in sorted(fila["HORARIO DETALLADO"].keys())])
     horas_unicas = sorted(set([
         "-".join(f"{h.hour:02d}-{h.minute:02d}" for h in v if isinstance(h, time))
         for v in fila["HORARIO DETALLADO"].values()
