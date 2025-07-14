@@ -1,0 +1,8 @@
+{
+    "plantilla": "plantilla_lista_estudiantes.xlsx",
+    "carga_horaria": "Carga_Horaria_2025.xlsx",
+    "mes": "JUNIO 2025",
+    "feriados": [
+        "2025-06-29"
+    ]
+}
