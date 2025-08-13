@@ -1,3 +1,17 @@
+import pandas as pd
+from pathlib import Path
+from InquirerPy import inquirer
+from datetime import datetime
+import re
+
+IDIOMAS_VALIDOS = ["INGLÉS", "PORTUGUÉS", "ITALIANO", "QUECHUA"]
+COLUMNAS_FINALES = [
+    "CODIGO", "Nivel", "Ciclo", "MODALIDAD", "DOCENTE", "IDIOMA", "DÍAS DETECTADOS",
+    "HORARIO DETALLADO", "F. Inicio", "F. Fin", "Parcial", "Final", "Subida de notas",
+    "N° Inscritos", "N° Esperado", "N° Aprobados", "N° Desaprobados",
+    "N° No asistio (tiene 0)", "Destalle del curso"
+]
+
 def clean_df_mes_idioma(excel_path, mes):
     # Lee todos los cursos (de todos los idiomas) del mes seleccionado
     df = pd.read_excel(excel_path, sheet_name=mes, skiprows=1)
@@ -136,3 +150,110 @@ def clean_df_mes_idioma(excel_path, mes):
             df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
 
     return df[COLUMNAS_FINALES].reset_index(drop=True)
+
+
+def seleccionar_carga_horaria():
+    archivos = [f for f in Path('.').glob("*.xlsx") if not str(f).startswith("~$")]
+    if not archivos:
+        print("❌ No se encontraron archivos .xlsx en la carpeta actual.")
+        exit(1)
+    opciones = [{"name": f.name, "value": str(f)} for f in archivos]
+    carga_horaria = inquirer.select(
+        message="Selecciona el archivo de carga horaria (.xlsx):",
+        choices=opciones,
+    ).execute()
+    return carga_horaria
+
+def seleccionar_mes(carga_horaria):
+    xl = pd.ExcelFile(carga_horaria)
+    opciones = [{"name": sh, "value": sh} for sh in xl.sheet_names]
+    mes = inquirer.select(
+        message="Selecciona el mes (sheet):",
+        choices=opciones,
+    ).execute()
+    return mes
+
+def redactar_instrucciones(df):
+    instrucciones = "Estos son los horarios de los cursos:\n"
+    for _, row in df.iterrows():
+        codigo = row.get("CODIGO", "")
+    docente = row.get("DOCENTE", "")
+    idioma = row.get("IDIOMA", "")
+    dias = row.get("DÍAS DETECTADOS", [])
+    horas = row.get("HORARIO DETALLADO", {})
+    if not codigo or not horas:
+        return ""
+    dias_str = ', '.join(dias) if dias else "-"
+    horas_str = []
+    for k, v in horas.items():
+        if isinstance(v, tuple) and all(v):
+            try:
+                dia_nombre = dias[int(k)] if isinstance(k, int) and int(k) < len(dias) else str(k)
+            except:
+                dia_nombre = str(k)
+            horas_str.append(f"{dia_nombre}: {v[0].strftime('%H:%M')} - {v[1].strftime('%H:%M')}")
+    horas_str = "; ".join(horas_str) if horas_str else "-"
+    instrucciones += f"- Curso {codigo} ({idioma}) dictado por {docente}: {dias_str} {horas_str}\n"
+    instrucciones += ("\nUtiliza esta información para responder dudas sobre horarios, docentes o idiomas de los cursos.")
+    return instrucciones
+
+if __name__ == "__main__":
+    carga_horaria = seleccionar_carga_horaria()
+    mes = seleccionar_mes(carga_horaria)
+    df = clean_df_mes_idioma(carga_horaria, mes)
+    texto = redactar_instrucciones(df)
+    print("\n" + texto)
+import pandas as pd
+from pathlib import Path
+from InquirerPy import inquirer
+from menu_exportador import clean_df_mes_idioma
+
+def seleccionar_carga_horaria():
+    archivos = [f for f in Path('.').glob("*.xlsx") if not str(f).startswith("~$")]
+    if not archivos:
+        print("❌ No se encontraron archivos .xlsx en la carpeta actual.")
+        exit(1)
+    opciones = [{"name": f.name, "value": str(f)} for f in archivos]
+    carga_horaria = inquirer.select(
+        message="Selecciona el archivo de carga horaria (.xlsx):",
+        choices=opciones,
+    ).execute()
+    return carga_horaria
+
+def seleccionar_mes(carga_horaria):
+    xl = pd.ExcelFile(carga_horaria)
+    opciones = [{"name": sh, "value": sh} for sh in xl.sheet_names]
+    mes = inquirer.select(
+        message="Selecciona el mes (sheet):",
+        choices=opciones,
+    ).execute()
+    return mes
+
+def redactar_instrucciones(df):
+    instrucciones = "Estos son los horarios de los cursos:\n"
+    for _, row in df.iterrows():
+        codigo = row.get("CODIGO", "")
+        docente = row.get("DOCENTE", "")
+        idioma = row.get("IDIOMA", "")
+        dias = row.get("DÍAS DETECTADOS", [])
+        horas = row.get("HORARIO DETALLADO", {})
+        if not codigo or not horas:
+            continue
+        # Formatea días y horas
+        dias_str = ', '.join(dias) if dias else "-"
+        horas_str = []
+        for k, v in horas.items():
+            if isinstance(v, tuple) and all(v):
+                horas_str.append(f"{dias[k]}: {v[0].strftime('%H:%M')} - {v[1].strftime('%H:%M')}")
+        horas_str = "; ".join(horas_str) if horas_str else "-"
+        instrucciones += f"- Curso {codigo} ({idioma}) dictado por {docente}: {dias_str} {horas_str}\n"
+    instrucciones += ("\nUtiliza esta información para responder dudas sobre horarios, docentes o idiomas de los cursos.")
+    return instrucciones
+
+if __name__ == "__main__":
+    carga_horaria = seleccionar_carga_horaria()
+    mes = seleccionar_mes(carga_horaria)
+    df = clean_df_mes_idioma(carga_horaria, mes)
+    print(df)
+    texto = redactar_instrucciones(df)
+    print("\n" + texto)
